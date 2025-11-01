@@ -3,7 +3,7 @@ use crate::command::Command;
 #[derive(Default)]
 pub struct Shell {
     status_code: usize,
-    path: Vec<String>
+    path: Vec<String>,
 }
 
 impl Shell {
