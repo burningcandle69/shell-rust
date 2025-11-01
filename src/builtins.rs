@@ -1,20 +1,33 @@
+use std::os::unix::prelude::CommandExt;
 /// This module contains the builtin commands supported
 /// by our shell and the execution logic
 use crate::command::Command;
-use std::path::PathBuf;
+use std::path::{PathBuf};
 use is_executable::is_executable;
 
 impl Command {
-    pub fn execute(&self, path: &Vec<PathBuf>) -> Result<usize, String> {
+    pub fn execute(&self, path: &Vec<PathBuf>) -> Result<i32, String> {
         match self.name.as_str() {
             "exit" => self.exit(),
             "echo" => self.echo(),
             "type" => self.cmd_type(path),
-            _ => Err(format!("{}: command not found", self.name)),
+            _ => {
+                if let Some(exe) = self.find_executable(&self.name, path) {
+                    let mut cmd = std::process::Command::new(exe.file_name().unwrap());
+                    if self.args.len() > 1 {
+                        cmd.args(&self.args[1..]);
+                    }
+                    let mut child = cmd.spawn().unwrap();
+                    let status = child.wait().unwrap_or_default().code().unwrap_or_default();
+                    Ok(status)
+                } else {
+                    Err(format!("{}: command not found", self.name))
+                }
+            },
         }
     }
 
-    fn cmd_type(&self, path: &Vec<PathBuf>) -> Result<usize, String> {
+    fn cmd_type(&self, path: &Vec<PathBuf>) -> Result<i32, String> {
         if self.args.len() < 2 {
             return Err("Usage: type <command>".into());
         }
@@ -24,39 +37,18 @@ impl Command {
         match cmd.as_str() {
             "exit" | "echo" | "type" => println!("{} is a shell builtin", cmd),
             _ => {
-                for p in path {
-                    let entries = match p.read_dir() {
-                        Ok(r) => r,
-                        Err(_) => continue,
-                    };
-
-                    for entry in entries.flatten() {
-                        if !is_executable(entry.path()) {
-                            continue;
-                        }
-
-                        let name = entry.file_name();
-                        let name = match name.to_str() {
-                            Some(n) => n,
-                            None => continue,
-                        };
-
-                        if name == cmd {
-                            if let Some(path_str) = entry.path().to_str() {
-                                println!("{} is {}", cmd, path_str)
-                            }
-                            return Ok(0);
-                        }
-                    }
+                if let Some(path_str) = self.find_executable(cmd, path) {
+                    println!("{} is {}", cmd, path_str.to_str().unwrap_or(""))
+                } else {
+                    println!("{}: not found", cmd);
                 }
-                println!("{}: not found", cmd);
             }
         }
 
         Ok(0)
     }
 
-    fn exit(&self) -> Result<usize, String> {
+    fn exit(&self) -> Result<i32, String> {
         if self.args.len() < 2 {
             return Err("Usage: exit <exit_code>".into());
         }
@@ -64,8 +56,34 @@ impl Command {
         std::process::exit(exit_code)
     }
 
-    fn echo(&self) -> Result<usize, String> {
+    fn echo(&self) -> Result<i32, String> {
         println!("{}", self.args[1..].join(" "));
         Ok(0)
+    }
+    
+    fn find_executable(&self, cmd: &String, path: &Vec<PathBuf>) -> Option<PathBuf> {
+        for p in path {
+        let entries = match p.read_dir() {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+
+        for entry in entries.flatten() {
+            if !is_executable(entry.path()) {
+                continue;
+            }
+
+            let name = entry.file_name();
+            let name = match name.to_str() {
+                Some(n) => n,
+                None => continue,
+            };
+
+            if name == cmd {
+                return Some(entry.path());
+            }
+        }
+    }
+        None
     }
 }

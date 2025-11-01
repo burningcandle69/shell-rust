@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct Shell {
-    status_code: usize,
+    status_code: i32,
     path: Vec<PathBuf>,
 }
 
@@ -21,7 +21,7 @@ impl Shell {
         }
     }
 
-    pub fn execute(&mut self, input: String) -> Result<usize, String> {
+    pub fn execute(&mut self, input: String) -> Result<i32, String> {
         let cmd = Command::from(input);
         let status = cmd.execute(&self.path)?;
         self.status_code = status;
