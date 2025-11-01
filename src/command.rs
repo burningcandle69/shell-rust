@@ -1,5 +1,4 @@
-use crate::command::CommandType::{Builtin, Invalid};
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
 
 /// This module will contain the Command struct
 /// and the parsing logic along with it
@@ -20,21 +19,6 @@ impl From<String> for Command {
         Command {
             name: args[0].clone(),
             args,
-        }
-    }
-}
-
-pub enum CommandType {
-    Builtin,
-    Binary,
-    Invalid,
-}
-
-impl CommandType {
-    pub fn from_name(name: &String) -> Self {
-        match name.as_str() {
-            "exit" | "echo" | "type" => Builtin,
-            _ => Invalid,
         }
     }
 }

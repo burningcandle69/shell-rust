@@ -7,7 +7,7 @@ use crate::shell::Shell;
 use std::io::{self, Write};
 
 fn main() -> io::Result<()> {
-    let mut shell = Shell::default();
+    let mut shell = Shell::new();
 
     loop {
         print!("$ ");

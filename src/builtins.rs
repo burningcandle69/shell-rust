@@ -1,30 +1,56 @@
 /// This module contains the builtin commands supported
 /// by our shell and the execution logic
-use crate::command::{Command, CommandType};
+use crate::command::Command;
+use std::path::PathBuf;
+use is_executable::is_executable;
 
 impl Command {
-    pub fn execute(&self) -> Result<usize, String> {
+    pub fn execute(&self, path: &Vec<PathBuf>) -> Result<usize, String> {
         match self.name.as_str() {
             "exit" => self.exit(),
             "echo" => self.echo(),
-            "type" => self.cmd_type(),
+            "type" => self.cmd_type(path),
             _ => Err(format!("{}: command not found", self.name)),
         }
     }
 
-    fn cmd_type(&self) -> Result<usize, String> {
+    fn cmd_type(&self, path: &Vec<PathBuf>) -> Result<usize, String> {
         if self.args.len() < 2 {
             return Err("Usage: type <command>".into());
         }
 
         let cmd = &self.args[1];
 
-        let tp = CommandType::from_name(cmd);
+        match cmd.as_str() {
+            "exit" | "echo" | "type" => println!("{} is a shell builtin", cmd),
+            _ => {
+                for p in path {
+                    let entries = match p.read_dir() {
+                        Ok(r) => r,
+                        Err(_) => continue,
+                    };
 
-        match tp {
-            CommandType::Builtin => println!("{} is a shell builtin", cmd),
-            CommandType::Binary => println!("{} is a binary or shell script", cmd),
-            CommandType::Invalid => println!("{}: not found", cmd),
+                    for entry in entries.flatten() {
+                        if !is_executable(entry.path()) {
+                            continue;
+                        }
+
+                        let name = entry.file_name();
+                        let name = match name.to_str() {
+                            Some(n) => n,
+                            None => continue,
+                        };
+
+                        if name == cmd {
+                            if let Some(path_str) = entry.path().to_str() {
+                                println!("{} is {}", cmd, path_str)
+                            }
+                            return Ok(0);
+                        }
+                    }
+                }
+                println!("{}: not found", cmd);
+            }
         }
 
         Ok(0)
