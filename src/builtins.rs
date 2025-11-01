@@ -87,7 +87,7 @@ impl Command {
     }
 
     fn echo(&self) -> Result<i32, String> {
-        println!("{}", self.args[1..].join(" "));
+        println!("{}", self.args[1..].join(" ").trim());
         Ok(0)
     }
 
