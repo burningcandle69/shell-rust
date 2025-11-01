@@ -78,9 +78,9 @@ impl From<String> for Command {
         let mut stdout = None;
         let mut stderr = None;
         
-        if let Some(idx) = args.iter().position(|x| [">", "1>", "1>>"].contains(&x.as_str())) {
+        if let Some(idx) = args.iter().position(|x| [">", ">>", "1>", "1>>"].contains(&x.as_str())) {
             upto = upto.min(idx);
-            stdout = Some((args[idx + 1].clone(), args[idx] == "1>>"));
+            stdout = Some((args[idx + 1].clone(), args[idx] == "1>>" || args[idx] == ">>"));
         }
         
         if let Some(idx) = args.iter().position(|x| ["2>", "2>>"].contains(&x.as_str())) {
