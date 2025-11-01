@@ -7,12 +7,13 @@ use is_executable::is_executable;
 use crate::shell::Shell;
 
 impl Command {
-    pub fn execute(&self, shell: &Shell) -> Result<i32, String> {
+    pub fn execute(&self, shell: &mut Shell) -> Result<i32, String> {
         match self.name.as_str() {
             "exit" => self.exit(),
             "echo" => self.echo(),
             "type" => self.cmd_type(&shell.path),
             "pwd" => self.pwd(&shell.pwd),
+            "cd" => self.cd(shell),
             _ => {
                 if let Some(exe) = self.find_executable(&self.name, &shell.path) {
                     let mut cmd = std::process::Command::new(exe.file_name().unwrap());
@@ -49,7 +50,23 @@ impl Command {
 
         Ok(0)
     }
-    
+
+    fn cd(&self, shell: &mut Shell) -> Result<i32, String> {
+        if self.args.len() < 2 {
+            return Err("cd: No such file or directory".into());
+        }
+
+        let p = PathBuf::from(&self.args[1]);
+        if !p.exists() {
+            return Err(format!("cd: {}: No such file or directory", self.args[1]));
+        }
+
+        shell.pwd = p.canonicalize().unwrap();
+        std::env::set_current_dir(p).unwrap();
+
+        Ok(0)
+    }
+
     fn pwd(&self, pwd: &PathBuf) -> Result<i32, String> {
         println!("{}", pwd.to_str().unwrap());
         Ok(0)
@@ -67,7 +84,7 @@ impl Command {
         println!("{}", self.args[1..].join(" "));
         Ok(0)
     }
-    
+
     fn find_executable(&self, cmd: &String, path: &Vec<PathBuf>) -> Option<PathBuf> {
         for p in path {
         let entries = match p.read_dir() {

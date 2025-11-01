@@ -25,7 +25,7 @@ impl Shell {
 
     pub fn execute(&mut self, input: String) -> Result<i32, String> {
         let cmd = Command::from(input);
-        let status = cmd.execute(&self)?;
+        let status = cmd.execute(self)?;
         self.status_code = status;
         Ok(status)
     }
