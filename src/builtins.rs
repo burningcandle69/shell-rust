@@ -4,15 +4,17 @@ use std::os::unix::prelude::CommandExt;
 use crate::command::Command;
 use std::path::{PathBuf};
 use is_executable::is_executable;
+use crate::shell::Shell;
 
 impl Command {
-    pub fn execute(&self, path: &Vec<PathBuf>) -> Result<i32, String> {
+    pub fn execute(&self, shell: &Shell) -> Result<i32, String> {
         match self.name.as_str() {
             "exit" => self.exit(),
             "echo" => self.echo(),
-            "type" => self.cmd_type(path),
+            "type" => self.cmd_type(&shell.path),
+            "pwd" => self.pwd(&shell.pwd),
             _ => {
-                if let Some(exe) = self.find_executable(&self.name, path) {
+                if let Some(exe) = self.find_executable(&self.name, &shell.path) {
                     let mut cmd = std::process::Command::new(exe.file_name().unwrap());
                     if self.args.len() > 1 {
                         cmd.args(&self.args[1..]);
@@ -35,7 +37,7 @@ impl Command {
         let cmd = &self.args[1];
 
         match cmd.as_str() {
-            "exit" | "echo" | "type" => println!("{} is a shell builtin", cmd),
+            "exit" | "echo" | "type" | "pwd" => println!("{} is a shell builtin", cmd),
             _ => {
                 if let Some(path_str) = self.find_executable(cmd, path) {
                     println!("{} is {}", cmd, path_str.to_str().unwrap_or(""))
@@ -45,6 +47,11 @@ impl Command {
             }
         }
 
+        Ok(0)
+    }
+    
+    fn pwd(&self, pwd: &PathBuf) -> Result<i32, String> {
+        println!("{}", pwd.to_str().unwrap());
         Ok(0)
     }
 

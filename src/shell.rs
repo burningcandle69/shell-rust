@@ -4,7 +4,8 @@ use std::path::PathBuf;
 #[derive(Default)]
 pub struct Shell {
     status_code: i32,
-    path: Vec<PathBuf>,
+    pub path: Vec<PathBuf>,
+    pub pwd: PathBuf,
 }
 
 impl Shell {
@@ -15,6 +16,7 @@ impl Shell {
             Shell {
                 status_code: 0,
                 path: paths.into_iter().filter(|p| p.is_dir()).collect(),
+                pwd: std::env::current_dir().unwrap()
             }
         } else {
             Shell::default()
@@ -23,7 +25,7 @@ impl Shell {
 
     pub fn execute(&mut self, input: String) -> Result<i32, String> {
         let cmd = Command::from(input);
-        let status = cmd.execute(&self.path)?;
+        let status = cmd.execute(&self)?;
         self.status_code = status;
         Ok(status)
     }
