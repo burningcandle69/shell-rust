@@ -3,7 +3,6 @@
 use crate::command::Command;
 use crate::shell::Shell;
 use is_executable::is_executable;
-use std::os::unix::prelude::CommandExt;
 use std::path::PathBuf;
 
 impl Command {

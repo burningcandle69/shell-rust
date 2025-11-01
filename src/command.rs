@@ -1,5 +1,4 @@
 use regex::{Captures, Regex};
-use std::fmt::Display;
 
 /// This module will contain the Command struct
 /// and the parsing logic along with it
@@ -15,6 +14,8 @@ impl From<String> for Command {
         let value = value.replace(r#""""#, "");
         let re =
             Regex::new(r#"(?:[^'"\s\\]|\\.)+|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*""#).unwrap();
+        let back_quotes = Regex::new(r#"\\(')"#).unwrap();
+        let back_double_quotes = Regex::new(r#"\\(")"#).unwrap(); 
         let back = Regex::new(r#"\\(.)"#).unwrap();
 
         let mut args = vec![];
@@ -23,11 +24,18 @@ impl From<String> for Command {
             if v.is_empty() {
                 continue;
             }
-            let v = back.replace_all(v, |caps: &Captures| format!("{}", &caps[1]));
-            if &v[0..1] == "'" || &v[0..1] == "\"" {
+            let f = v.chars().nth(0).unwrap();
+            let l = v.chars().last().unwrap();
+            if f == '\'' &&  l == '\''  {
+                let v = back_quotes.replace_all(v, |caps: &Captures| format!("{}", &caps[1]));
                 let v = v[1..v.len() - 1].to_string();
                args.push(v); 
+            } else if f == '"' && l == '"' {
+                let v = back_double_quotes.replace_all(v, |caps: &Captures| format!("{}", &caps[1]));
+                let v = v[1..v.len() - 1].to_string();
+                args.push(v); 
             } else {
+                let v = back.replace_all(v, |caps: &Captures| format!("{}", &caps[1]));
                 args.push(v.to_string());
             }
             // println!("{v:?}");
