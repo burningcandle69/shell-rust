@@ -16,7 +16,7 @@ impl Shell {
             Shell {
                 status_code: 0,
                 path: paths.into_iter().filter(|p| p.is_dir()).collect(),
-                pwd: std::env::current_dir().unwrap()
+                pwd: std::env::current_dir().unwrap(),
             }
         } else {
             Shell::default()

@@ -1,10 +1,10 @@
-use std::os::unix::prelude::CommandExt;
 /// This module contains the builtin commands supported
 /// by our shell and the execution logic
 use crate::command::Command;
-use std::path::{PathBuf};
-use is_executable::is_executable;
 use crate::shell::Shell;
+use is_executable::is_executable;
+use std::os::unix::prelude::CommandExt;
+use std::path::PathBuf;
 
 impl Command {
     pub fn execute(&self, shell: &mut Shell) -> Result<i32, String> {
@@ -26,7 +26,7 @@ impl Command {
                 } else {
                     Err(format!("{}: command not found", self.name))
                 }
-            },
+            }
         }
     }
 
@@ -52,11 +52,18 @@ impl Command {
     }
 
     fn cd(&self, shell: &mut Shell) -> Result<i32, String> {
+        let home = std::env::var("HOME").unwrap_or("~".into());
+
         if self.args.len() < 2 {
             return Err("cd: No such file or directory".into());
         }
 
-        let p = PathBuf::from(&self.args[1]);
+        let p = if self.args[1] == "~" {
+            PathBuf::from(&home)
+        } else {
+            PathBuf::from(&self.args[1])
+        };
+
         if !p.exists() {
             return Err(format!("cd: {}: No such file or directory", self.args[1]));
         }
@@ -87,27 +94,27 @@ impl Command {
 
     fn find_executable(&self, cmd: &String, path: &Vec<PathBuf>) -> Option<PathBuf> {
         for p in path {
-        let entries = match p.read_dir() {
-            Ok(r) => r,
-            Err(_) => continue,
-        };
-
-        for entry in entries.flatten() {
-            if !is_executable(entry.path()) {
-                continue;
-            }
-
-            let name = entry.file_name();
-            let name = match name.to_str() {
-                Some(n) => n,
-                None => continue,
+            let entries = match p.read_dir() {
+                Ok(r) => r,
+                Err(_) => continue,
             };
 
-            if name == cmd {
-                return Some(entry.path());
+            for entry in entries.flatten() {
+                if !is_executable(entry.path()) {
+                    continue;
+                }
+
+                let name = entry.file_name();
+                let name = match name.to_str() {
+                    Some(n) => n,
+                    None => continue,
+                };
+
+                if name == cmd {
+                    return Some(entry.path());
+                }
             }
         }
-    }
         None
     }
 }
