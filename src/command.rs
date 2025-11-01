@@ -1,3 +1,6 @@
+/// This module will contain the Command struct
+/// and the parsing logic along with it
+
 pub struct Command {
     pub name: String,
     pub args: Vec<String>
