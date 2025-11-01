@@ -21,7 +21,7 @@ impl Command {
                 if let Some(exe) = self.find_executable(&self.name, &shell.path) {
                     let mut cmd = std::process::Command::new(exe.file_name().unwrap());
                     cmd
-                        .stdin(Stdio::piped())
+                        .stderr(Stdio::piped())
                         .stdout(Stdio::piped());
                     if self.args.len() > 1 {
                         cmd.args(&self.args[1..]);
