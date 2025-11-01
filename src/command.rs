@@ -1,3 +1,4 @@
+use regex::{Captures, Regex};
 use std::fmt::Display;
 
 /// This module will contain the Command struct
@@ -10,11 +11,32 @@ pub struct Command {
 
 impl From<String> for Command {
     fn from(value: String) -> Self {
-        let args = value
-            .trim()
-            .split(" ")
-            .map(|x| x.to_string())
-            .collect::<Vec<_>>();
+        let value = value.replace("''", "");
+        let re =
+            Regex::new(r#"(?:[^'"\s\\]|\\.)+|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*""#).unwrap();
+        let back = Regex::new(r#"\\(.)"#).unwrap();
+
+        let mut args = vec![];
+        for val in re.captures_iter(&value) {
+            let v = val.get_match().as_str().trim();
+            if v.is_empty() {
+                continue;
+            }
+            let v = back.replace_all(v, |caps: &Captures| format!("{}", &caps[1]));
+            if &v[0..1] == "'" || &v[0..1] == "\"" {
+                let v = v[1..v.len() - 1].to_string();
+               args.push(v); 
+            } else {
+                args.push(v.to_string());
+            }
+            // println!("{v:?}");
+        }
+
+        // let args = value
+        //     .trim()
+        //     .split(" ")
+        //     .map(|x| x.to_string())
+        //     .collect::<Vec<_>>();
 
         Command {
             name: args[0].clone(),
