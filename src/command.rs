@@ -12,6 +12,7 @@ pub struct Command {
 impl From<String> for Command {
     fn from(value: String) -> Self {
         let value = value.replace("''", "");
+        let value = value.replace(r#""""#, "");
         let re =
             Regex::new(r#"(?:[^'"\s\\]|\\.)+|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*""#).unwrap();
         let back = Regex::new(r#"\\(.)"#).unwrap();
