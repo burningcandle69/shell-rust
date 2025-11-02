@@ -18,7 +18,9 @@ const NOT_OK: ChildOrStatus = ChildOrStatus::Status(1);
 impl ChildOrStatus {
     pub fn wait(self) -> i32 {
         match self {
-            ChildOrStatus::Child(mut c) => c.wait().unwrap().code().unwrap(),
+            ChildOrStatus::Child(mut c) => {
+                c.wait().unwrap_or_default().code().unwrap_or_default()
+            },
             ChildOrStatus::Status(s) => s,
         }
     }
