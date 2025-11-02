@@ -10,7 +10,6 @@ use inquire::ui::{RenderConfig, Styled};
 use inquire::Text;
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use inquire::formatter::StringFormatter;
 
 fn main() -> io::Result<()> {
     let mut shell = Shell::new();

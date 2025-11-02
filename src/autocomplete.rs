@@ -1,9 +1,7 @@
 use std::io;
 use std::io::Write;
-use crate::shell::Shell;
 use crate::trie::Trie;
 use inquire::autocompletion::Replacement;
-use inquire::InquireError::Custom;
 use inquire::{Autocomplete, CustomUserError};
 use is_executable::is_executable;
 use std::path::PathBuf;
@@ -47,7 +45,7 @@ impl ShellAutocomplete {
 }
 
 impl Autocomplete for ShellAutocomplete {
-    fn get_suggestions(&mut self, input: &str) -> Result<Vec<String>, CustomUserError> {
+    fn get_suggestions(&mut self, _: &str) -> Result<Vec<String>, CustomUserError> {
         Ok(vec![])
     }
     
@@ -61,7 +59,11 @@ impl Autocomplete for ShellAutocomplete {
         }
 
         let fs = self.suggestions.fuzzy(input.chars());
-        if fs.len() == 1 {
+        if fs.is_empty() {
+            print!("\x07");
+            let _ = io::stdout().flush();
+            Ok(None)
+        } else if fs.len() == 1 {
             Ok(Some(fs[0].clone() + " "))
         } else {
             if !self.show_suggestions {
@@ -69,7 +71,7 @@ impl Autocomplete for ShellAutocomplete {
             } else {
                 print!("\r\n{}\r\n", fs.join("  "));
                 print!("$ {}", input);
-                io::stdout().flush();
+                let _ = io::stdout().flush();
                 self.show_suggestions = false;
             }
             Ok(None)

@@ -24,7 +24,13 @@ impl Trie {
     pub fn fuzzy(&self, mut s: Chars) -> Vec<String> {
         let this = match s.nth(0) {
             Some(v) => v,
-            None => return self.list_all(),
+            None => {
+                let r = self.list_all();
+                if r.is_empty() {
+                    return vec!["".into()]
+                }
+                return r
+            },
         };
         if self.members.contains_key(&this) {
             let mut res = vec![];
@@ -32,11 +38,7 @@ impl Trie {
             for more_r in self.members.get(&this).unwrap().fuzzy(s) {
                 res.push(r.clone() + &more_r)  
             }
-            if res.is_empty() {
-                vec![r]
-            } else {
-                res
-            }
+            res
         } else {
             vec![]
         }
