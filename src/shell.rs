@@ -78,7 +78,7 @@ impl Shell {
     }
 
     pub fn write_history<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
-        fs::write(path, self.history.join("\n"))?;
+        fs::write(path, self.history.join("\n") + "\n")?;
         Ok(())
     }
 }
