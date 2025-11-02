@@ -1,15 +1,15 @@
-use std::io;
-use std::io::Write;
 use crate::trie::Trie;
 use inquire::autocompletion::Replacement;
 use inquire::{Autocomplete, CustomUserError};
 use is_executable::is_executable;
+use std::io;
+use std::io::Write;
 use std::path::PathBuf;
 
 #[derive(Clone)]
 pub struct ShellAutocomplete {
     pub suggestions: Trie,
-    show_suggestions: bool
+    show_suggestions: bool,
 }
 
 impl ShellAutocomplete {
@@ -40,7 +40,10 @@ impl ShellAutocomplete {
                 res.add(name.chars());
             }
         }
-        ShellAutocomplete { suggestions: res, show_suggestions: false }
+        ShellAutocomplete {
+            suggestions: res,
+            show_suggestions: false,
+        }
     }
 }
 
@@ -48,7 +51,7 @@ impl Autocomplete for ShellAutocomplete {
     fn get_suggestions(&mut self, _: &str) -> Result<Vec<String>, CustomUserError> {
         Ok(vec![])
     }
-    
+
     fn get_completion(
         &mut self,
         input: &str,
@@ -60,10 +63,19 @@ impl Autocomplete for ShellAutocomplete {
 
         let mut fs = self.suggestions.fuzzy(input.chars());
         fs.sort();
-        
-        if fs.len() == 1 {
+
+        if fs.is_empty() {
+            print!("\x07");
+            let _ = io::stdout().flush();
+            Ok(None)
+        } else if fs.len() == 1 {
             Ok(Some(fs[0].clone() + " "))
         } else {
+            let pref = longest_common_prefix(&fs);
+            if pref != input {
+                return Ok(Some(pref))
+            }
+
             if !self.show_suggestions {
                 print!("\x07");
                 self.show_suggestions = true;
@@ -73,7 +85,30 @@ impl Autocomplete for ShellAutocomplete {
                 self.show_suggestions = false;
             }
             let _ = io::stdout().flush();
+
             Ok(None)
         }
     }
+}
+
+pub fn longest_common_prefix(strs: &Vec<String>) -> String {
+    if strs.is_empty() {
+        return String::new();
+    }
+
+    // Initialize the prefix with the first string
+    let mut prefix = strs[0].clone();
+
+    // Iterate through the remaining strings
+    for i in 1..strs.len() {
+        // While the current prefix is not a prefix of the current string, shorten it
+        while !strs[i].starts_with(&prefix) {
+            if prefix.is_empty() {
+                return String::new(); // No common prefix found
+            }
+            prefix.pop(); // Remove the last character
+        }
+    }
+
+    prefix // Return the resulting common prefix
 }
