@@ -10,14 +10,14 @@ impl Command {
     pub fn execute(&self, shell: &mut Shell) -> ExecResult {
         match self.name.as_str() {
             "exit" => {
-                let _ = shell.write_history("history.txt");
+                let _ = shell.write_history(&shell.hist_file);
                 self.exit()
-            },
+            }
             "echo" => self.echo(),
             "type" => self.cmd_type(&shell.path),
             "pwd" => self.pwd(&shell.pwd),
             "cd" => self.cd(shell),
-            "history" => self.history(&shell.history),
+            "history" => self.history(shell),
             _ => {
                 let res = ExecResult::default();
 
@@ -87,13 +87,23 @@ impl Command {
         res
     }
 
-    fn history(&self, history: &Vec<String>) -> ExecResult {
+    fn history(&self, shell: &mut Shell) -> ExecResult {
+        if self.args.len() == 3 {
+            if self.args[1] == "-r" {
+                let _ = shell.read_history(self.args[2].clone());
+            } else if self.args[1] == "-w" {
+                let _ = shell.write_history(self.args[2].clone());
+            }
+            return ExecResult::default();
+        }
+
+        let history = &shell.history;
         let mut lim = history.len();
         if self.args.len() > 1 {
             lim = lim.min(self.args[1].parse().unwrap());
         }
         let mut res = String::new();
-        for i in history.len()-lim..history.len() {
+        for i in history.len() - lim..history.len() {
             res += &format!("    {}  {}\n", i + 1, history[i]);
         }
         ExecResult::default().with_stdout(res)

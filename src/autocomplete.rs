@@ -1,13 +1,13 @@
 use crate::trie::Trie;
 use is_executable::is_executable;
 use rustyline::completion::{Completer, Pair};
+use rustyline::highlight::Highlighter;
+use rustyline::hint::Hinter;
+use rustyline::validate::Validator;
 use rustyline::{Context, Helper};
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
-use rustyline::highlight::Highlighter;
-use rustyline::hint::Hinter;
-use rustyline::validate::Validator;
 
 #[derive(Clone)]
 pub struct ShellAutocomplete {
@@ -42,9 +42,7 @@ impl ShellAutocomplete {
                 res.add(name.chars());
             }
         }
-        ShellAutocomplete {
-            suggestions: res,
-        }
+        ShellAutocomplete { suggestions: res }
     }
 }
 
@@ -98,4 +96,3 @@ impl Hinter for ShellAutocomplete {
 }
 
 impl Validator for ShellAutocomplete {}
-

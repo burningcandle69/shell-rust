@@ -7,6 +7,7 @@ pub struct Shell {
     status_code: i32,
     pub path: Vec<PathBuf>,
     pub pwd: PathBuf,
+    pub hist_file: String,
     pub history: Vec<String>,
 }
 
@@ -14,11 +15,13 @@ impl Shell {
     pub fn new() -> Self {
         if let Ok(path_os_string) = std::env::var("PATH") {
             let paths: Vec<PathBuf> = std::env::split_paths(&path_os_string).collect();
+            let hist_file = std::env::var("HISTFILE").unwrap_or_default();
 
             Shell {
                 status_code: 0,
                 path: paths.into_iter().filter(|p| p.is_dir()).collect(),
                 pwd: std::env::current_dir().unwrap(),
+                hist_file,
                 history: vec![],
             }
         } else {
@@ -59,15 +62,21 @@ impl Shell {
 
         Ok(result.status)
     }
-    
+
     pub fn read_history<P: AsRef<Path>>(&mut self, path_buf: P) -> std::io::Result<()> {
         let f = fs::read(path_buf)?;
         let h = String::from_utf8_lossy(&f);
-        self.history = h.trim().split("\n").filter(|x| !x.is_empty())
-            .map(|x| x.to_string()).collect();
+        self.history.append(
+            &mut h
+                .trim()
+                .split("\n")
+                .filter(|x| !x.is_empty())
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>(),
+        );
         Ok(())
     }
-    
+
     pub fn write_history<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
         fs::write(path, self.history.join("\n"))?;
         Ok(())

@@ -6,7 +6,6 @@ mod trie;
 
 use crate::autocomplete::ShellAutocomplete;
 use crate::shell::Shell;
-use rustyline::completion::{Completer, Pair};
 use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
 #[allow(unused_imports)]
@@ -20,7 +19,7 @@ fn main() -> io::Result<()> {
     rl.set_completion_type(rustyline::CompletionType::List);
     rl.set_auto_add_history(true);
     rl.set_helper(Some(autocomplete));
-    shell.read_history("history.txt");
+    let _ = shell.read_history(shell.hist_file.clone());
     let _ = rl.load_history("history.txt");
 
     loop {
