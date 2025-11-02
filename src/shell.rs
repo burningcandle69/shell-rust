@@ -63,7 +63,8 @@ impl Shell {
     pub fn read_history<P: AsRef<Path>>(&mut self, path_buf: P) -> std::io::Result<()> {
         let f = fs::read(path_buf)?;
         let h = String::from_utf8_lossy(&f);
-        self.history = h.trim().split("\n").map(|x| x.to_string()).collect();
+        self.history = h.trim().split("\n").filter(|x| !x.is_empty())
+            .map(|x| x.to_string()).collect();
         Ok(())
     }
     

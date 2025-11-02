@@ -94,7 +94,7 @@ impl Command {
         }
         let mut res = String::new();
         for i in history.len()-lim..history.len() {
-            res += &format!("\t{} {}\n", i + 1, history[i]);
+            res += &format!("    {}  {}\n", i + 1, history[i]);
         }
         ExecResult::default().with_stdout(res)
     }
