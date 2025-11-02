@@ -6,8 +6,9 @@ mod trie;
 
 use crate::autocomplete::ShellAutocomplete;
 use crate::shell::Shell;
-use inquire::ui::{RenderConfig, Styled};
-use inquire::Text;
+use rustyline::completion::{Completer, Pair};
+use rustyline::config::Configurer;
+use rustyline::error::ReadlineError;
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
@@ -15,26 +16,30 @@ fn main() -> io::Result<()> {
     let mut shell = Shell::new();
     let autocomplete = ShellAutocomplete::new(&shell.path);
 
-    let mut render_config = RenderConfig::empty();
-    let stl = Styled::new("$");
-    render_config.prompt_prefix = stl;
-    render_config.answered_prompt_prefix = stl;
-
-    let prompt = Text::new("")
-        .with_autocomplete(autocomplete)
-        .with_render_config(render_config)
-        .with_formatter(&|s| s.to_string());
-
-    // let txt = prompt.prompt();
+    let mut rl = rustyline::Editor::new().unwrap();
+    rl.set_completion_type(rustyline::CompletionType::List);
+    rl.set_auto_add_history(true);
+    rl.set_helper(Some(autocomplete));
+    shell.read_history("history.txt");
+    let _ = rl.load_history("history.txt");
 
     loop {
-        let prompt = prompt.clone();
-
-        let input = prompt.prompt().unwrap();
-
-        shell.execute(input).err().and_then(|e| {
-            println!("{e}");
-            Option::<String>::None
-        });
+        let input = rl.readline("$ ");
+        match input {
+            Ok(line) => {
+                shell.execute(line).err().and_then(|e| {
+                    println!("{e}");
+                    Option::<String>::None
+                });
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
+            Err(err) => {
+                println!("Error: {:?}", err);
+                break;
+            }
+        }
     }
+
+    Ok(())
 }

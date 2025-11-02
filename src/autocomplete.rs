@@ -1,15 +1,17 @@
 use crate::trie::Trie;
-use inquire::autocompletion::Replacement;
-use inquire::{Autocomplete, CustomUserError};
 use is_executable::is_executable;
+use rustyline::completion::{Completer, Pair};
+use rustyline::{Context, Helper};
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
+use rustyline::highlight::Highlighter;
+use rustyline::hint::Hinter;
+use rustyline::validate::Validator;
 
 #[derive(Clone)]
 pub struct ShellAutocomplete {
     pub suggestions: Trie,
-    show_suggestions: bool,
 }
 
 impl ShellAutocomplete {
@@ -42,73 +44,58 @@ impl ShellAutocomplete {
         }
         ShellAutocomplete {
             suggestions: res,
-            show_suggestions: false,
         }
     }
 }
 
-impl Autocomplete for ShellAutocomplete {
-    fn get_suggestions(&mut self, _: &str) -> Result<Vec<String>, CustomUserError> {
-        Ok(vec![])
-    }
+impl Completer for ShellAutocomplete {
+    type Candidate = Pair;
 
-    fn get_completion(
-        &mut self,
-        input: &str,
-        highlighted_suggestion: Option<String>,
-    ) -> Result<Replacement, CustomUserError> {
-        if highlighted_suggestion.is_some() {
-            return Ok(highlighted_suggestion);
-        }
-
-        let mut fs = self.suggestions.fuzzy(input.chars());
+    fn complete(
+        &self,
+        line: &str,
+        _: usize,
+        _: &Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
+        let mut fs = self.suggestions.fuzzy(line.chars());
         fs.sort();
 
         if fs.is_empty() {
             print!("\x07");
             let _ = io::stdout().flush();
-            Ok(None)
+            Ok((0, vec![]))
         } else if fs.len() == 1 {
-            Ok(Some(fs[0].clone() + " "))
+            let r = fs[0].clone() + " ";
+            Ok((
+                0,
+                vec![Pair {
+                    display: r.clone(),
+                    replacement: r.clone(),
+                }],
+            ))
         } else {
-            let pref = longest_common_prefix(&fs);
-            if pref != input {
-                return Ok(Some(pref))
-            }
-
-            if !self.show_suggestions {
-                print!("\x07");
-                self.show_suggestions = true;
-            } else {
-                print!("\r\n{}\r\n", fs.join("  "));
-                print!("$ {}", input);
-                self.show_suggestions = false;
-            }
-            let _ = io::stdout().flush();
-
-            Ok(None)
+            Ok((
+                0,
+                fs.into_iter()
+                    .map(|f| Pair {
+                        display: f.clone(),
+                        replacement: f.clone(),
+                    })
+                    .collect(),
+            ))
         }
     }
 }
 
-pub fn longest_common_prefix(strs: &Vec<String>) -> String {
-    if strs.is_empty() {
-        return String::new();
+impl Helper for ShellAutocomplete {}
+impl Highlighter for ShellAutocomplete {}
+impl Hinter for ShellAutocomplete {
+    type Hint = String;
+
+    fn hint(&self, _: &str, _: usize, _: &Context<'_>) -> Option<Self::Hint> {
+        None
     }
-
-    // Initialize the prefix with the first string
-    let mut prefix = strs[0].clone();
-
-    // Iterate through the remaining strings
-    for i in 1..strs.len() {
-        // While the current prefix is not a prefix of the current string, shorten it
-        while !strs[i].starts_with(&prefix) {
-            if prefix.is_empty() {
-                return String::new(); // No common prefix found
-            }
-            prefix.pop(); // Remove the last character
-        }
-    }
-
-    prefix // Return the resulting common prefix
 }
+
+impl Validator for ShellAutocomplete {}
+

@@ -29,10 +29,10 @@ impl Trie {
             None => {
                 let mut r = self.list_all();
                 if self.is_member {
-                    r.push("".into()); 
+                    r.push("".into());
                 }
-                return r
-            },
+                return r;
+            }
         };
         if self.members.contains_key(&this) {
             let mut res = vec![];

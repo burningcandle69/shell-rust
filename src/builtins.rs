@@ -3,18 +3,21 @@
 use crate::command::{Command, ExecResult};
 use crate::shell::Shell;
 use is_executable::is_executable;
-use std::io::Stdin;
 use std::path::PathBuf;
 use std::process::Stdio;
 
 impl Command {
     pub fn execute(&self, shell: &mut Shell) -> ExecResult {
         match self.name.as_str() {
-            "exit" => self.exit(),
+            "exit" => {
+                let _ = shell.write_history("history.txt");
+                self.exit()
+            },
             "echo" => self.echo(),
             "type" => self.cmd_type(&shell.path),
             "pwd" => self.pwd(&shell.pwd),
             "cd" => self.cd(shell),
+            "history" => self.history(&shell.history),
             _ => {
                 let res = ExecResult::default();
 
@@ -46,7 +49,7 @@ impl Command {
         let cmd = &self.args[1];
 
         let res = match cmd.as_str() {
-            "exit" | "echo" | "type" | "pwd" => format!("{} is a shell builtin\n", cmd),
+            "exit" | "echo" | "type" | "pwd" | "history" => format!("{} is a shell builtin\n", cmd),
             _ => {
                 if let Some(path_str) = self.find_executable(cmd, path) {
                     format!("{} is {}\n", cmd, path_str.to_str().unwrap_or(""))
@@ -84,6 +87,18 @@ impl Command {
         res
     }
 
+    fn history(&self, history: &Vec<String>) -> ExecResult {
+        let mut lim = history.len();
+        if self.args.len() > 1 {
+            lim = lim.min(self.args[1].parse().unwrap());
+        }
+        let mut res = String::new();
+        for i in history.len()-lim..history.len() {
+            res += &format!("\t{} {}\n", i + 1, history[i]);
+        }
+        ExecResult::default().with_stdout(res)
+    }
+
     fn pwd(&self, pwd: &PathBuf) -> ExecResult {
         ExecResult::default().with_stdout(format!("{}\n", pwd.to_str().unwrap()))
     }
@@ -97,7 +112,7 @@ impl Command {
         let exit_code = self.args[1].parse::<i32>();
         match exit_code {
             Ok(code) => std::process::exit(code),
-            Err(e) => ExecResult::default()
+            Err(_) => ExecResult::default()
                 .with_stderr(1)
                 .with_stderr("invalid error code"),
         }

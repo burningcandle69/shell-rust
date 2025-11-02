@@ -1,12 +1,13 @@
 use crate::command::Command;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Default)]
 pub struct Shell {
     status_code: i32,
     pub path: Vec<PathBuf>,
     pub pwd: PathBuf,
+    pub history: Vec<String>,
 }
 
 impl Shell {
@@ -18,6 +19,7 @@ impl Shell {
                 status_code: 0,
                 path: paths.into_iter().filter(|p| p.is_dir()).collect(),
                 pwd: std::env::current_dir().unwrap(),
+                history: vec![],
             }
         } else {
             Shell::default()
@@ -25,6 +27,8 @@ impl Shell {
     }
 
     pub fn execute(&mut self, input: String) -> Result<i32, String> {
+        self.history.push(input.clone());
+
         let cmd = Command::from(input);
         let result = cmd.execute(self);
         self.status_code = result.status;
@@ -54,5 +58,17 @@ impl Shell {
         }
 
         Ok(result.status)
+    }
+    
+    pub fn read_history<P: AsRef<Path>>(&mut self, path_buf: P) -> std::io::Result<()> {
+        let f = fs::read(path_buf)?;
+        let h = String::from_utf8_lossy(&f);
+        self.history = h.trim().split("\n").map(|x| x.to_string()).collect();
+        Ok(())
+    }
+    
+    pub fn write_history<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
+        fs::write(path, self.history.join("\n"))?;
+        Ok(())
     }
 }
