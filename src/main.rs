@@ -2,14 +2,14 @@ mod autocomplete;
 mod builtins;
 mod command;
 mod shell;
+mod shell_io;
 mod trie;
 
 use crate::autocomplete::ShellAutocomplete;
 use crate::shell::Shell;
 use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
-#[allow(unused_imports)]
-use std::io::{self, Write};
+use std::io::{self};
 
 fn main() -> io::Result<()> {
     let mut shell = Shell::new();

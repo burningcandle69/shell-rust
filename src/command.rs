@@ -1,5 +1,7 @@
+use crate::shell_io::{Input, Output};
 use regex::{Captures, Regex};
-use std::fmt::Display;
+use std::fs::OpenOptions;
+use std::io::{Read, Write};
 
 /// This module will contain the Command struct
 /// and the parsing logic along with it
@@ -7,31 +9,42 @@ use std::fmt::Display;
 pub struct Command {
     pub name: String,
     pub args: Vec<String>,
-    pub stdout: Option<(String, bool)>,
-    pub stderr: Option<(String, bool)>,
+    pub stdin: Input,
+    pub stdout: Output,
+    pub stderr: Output,
 }
 
-#[derive(Default)]
-pub struct ExecResult {
-    pub status: i32,
-    pub stdout: String,
-    pub stderr: String,
-}
+impl Command {
+    pub fn new(name: String) -> Command {
+        Command {
+            name,
+            args: vec![],
+            stdin: Input::Stdin,
+            stdout: Output::Stdout,
+            stderr: Output::Stderr,
+        }
+    }
 
-impl ExecResult {
-    pub fn with_status(mut self, status: i32) -> Self {
-        self.status = status;
+    pub fn with_args(mut self, args: Vec<String>) -> Command {
+        self.args = args;
         self
     }
 
-    pub fn with_stdout<T: Display>(mut self, stdout: T) -> Self {
-        self.stdout = stdout.to_string();
+    pub fn with_stderr(mut self, stderr: Output) -> Command {
+        self.stderr = stderr;
         self
     }
 
-    pub fn with_stderr<T: Display>(mut self, stderr: T) -> Self {
-        self.stderr = stderr.to_string();
+    pub fn with_stdout(mut self, stdout: Output) -> Command {
+        self.stdout = stdout;
         self
+    }
+
+    pub fn take_io(&mut self) -> (Box<dyn Read>, Box<dyn Write>, Box<dyn Write>) {
+        let stdin = self.stdin.take_read();
+        let stdout = self.stdout.take_write();
+        let stderr = self.stderr.take_write();
+        (stdin, stdout, stderr)
     }
 }
 
@@ -75,18 +88,24 @@ impl From<String> for Command {
         }
 
         let mut upto = args.len();
-        let mut stdout = None;
-        let mut stderr = None;
+        let mut cmd = Command::new(args[0].clone());
 
         if let Some(idx) = args
             .iter()
-            .position(|x| [">", ">>", "1>", "1>>"].contains(&x.as_str()))
+            .position(|x| [">", "1>", ">>", "1>>"].contains(&x.as_str()))
         {
             upto = upto.min(idx);
-            stdout = Some((
-                args[idx + 1].clone(),
-                args[idx] == "1>>" || args[idx] == ">>",
-            ));
+            let mut options = OpenOptions::new();
+            options.create(true);
+
+            if args[idx] == ">>" || args[idx] == "1>>" {
+                options.append(true);
+            } else {
+                options.write(true).truncate(true);
+            }
+
+            let stdout = options.open(args[idx + 1].clone()).unwrap();
+            cmd = cmd.with_stdout(Output::File(stdout));
         }
 
         if let Some(idx) = args
@@ -94,14 +113,20 @@ impl From<String> for Command {
             .position(|x| ["2>", "2>>"].contains(&x.as_str()))
         {
             upto = upto.min(idx);
-            stderr = Some((args[idx + 1].clone(), args[idx] == "2>>"));
+            let mut options = OpenOptions::new();
+            options.create(true);
+
+            if args[idx] == "2>>" {
+                options.append(true);
+            } else {
+                options.write(true).truncate(true);
+            }
+
+            let stderr = options.open(args[idx + 1].clone()).unwrap();
+
+            cmd = cmd.with_stderr(Output::File(stderr));
         }
 
-        Command {
-            name: args[0].clone(),
-            args: args[..upto].to_vec(),
-            stdout,
-            stderr,
-        }
+        cmd.with_args(args[..upto].to_vec())
     }
 }

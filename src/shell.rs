@@ -1,5 +1,8 @@
+use crate::builtins::ChildOrStatus;
 use crate::command::Command;
+use crate::shell_io::{Input, Output};
 use std::fs;
+use std::io::pipe;
 use std::path::{Path, PathBuf};
 
 #[derive(Default)]
@@ -24,45 +27,45 @@ impl Shell {
                 pwd: std::env::current_dir().unwrap(),
                 hist_file,
                 history: vec![],
-                appended: 0
+                appended: 0,
             }
         } else {
             Shell::default()
         }
     }
 
-    pub fn execute(&mut self, input: String) -> Result<i32, String> {
+    pub fn execute(&mut self, input: String) -> std::io::Result<i32> {
         self.history.push(input.clone());
 
-        let cmd = Command::from(input);
-        let result = cmd.execute(self);
-        self.status_code = result.status;
+        let mut cmd = Command::from(input);
 
-        if let Some((stderr, append)) = cmd.stderr {
-            let mut content = String::new();
-            if append {
-                content +=
-                    &String::from_utf8_lossy(&fs::read(&stderr).unwrap_or_default()).to_string();
-            }
-            content += &result.stderr;
-            fs::write(&stderr, content).map_err(|_| "cannot write to file")?;
-        } else {
-            eprint!("{}", result.stderr)
+        let mut cmds = cmd
+            .args
+            .split(|x| x == "|")
+            .map(|args| Command::new(args[0].clone()).with_args(args.to_vec()))
+            .collect::<Vec<_>>();
+
+        let n = cmds.len();
+
+        cmds[n - 1].stderr = cmd.stderr.take();
+        cmds[n - 1].stdout = cmd.stdout.take();
+
+        for i in 1..n {
+            let (pi, po) = pipe()?;
+            cmds[i - 1].stdout = Output::Pipe(po);
+            cmds[i].stdin = Input::Pipe(pi);
         }
 
-        if let Some((stdout, append)) = cmd.stdout {
-            let mut content = String::new();
-            if append {
-                content +=
-                    &String::from_utf8_lossy(&fs::read(&stdout).unwrap_or_default()).to_string();
-            }
-            content += &result.stdout;
-            fs::write(&stdout, content).map_err(|_| "cannot write to file")?;
-        } else {
-            print!("{}", result.stdout)
+        let r = cmds
+            .into_iter()
+            .map(|mut cmd| cmd.execute(self))
+            .collect::<std::io::Result<Vec<ChildOrStatus>>>()?;
+
+        for x in r {
+            self.status_code = x.wait();
         }
 
-        Ok(result.status)
+        Ok(0)
     }
 
     pub fn read_history<P: AsRef<Path>>(&mut self, path_buf: P) -> std::io::Result<()> {
@@ -83,7 +86,7 @@ impl Shell {
         fs::write(path, self.history.join("\n") + "\n")?;
         Ok(())
     }
-    
+
     pub fn append_history<P: AsRef<Path>>(&mut self, path: P) -> std::io::Result<()> {
         let f = fs::read(&path).unwrap_or_default();
         let h = String::from_utf8_lossy(&f).to_string();
