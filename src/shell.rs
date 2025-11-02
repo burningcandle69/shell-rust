@@ -9,6 +9,7 @@ pub struct Shell {
     pub pwd: PathBuf,
     pub hist_file: String,
     pub history: Vec<String>,
+    pub appended: usize,
 }
 
 impl Shell {
@@ -23,6 +24,7 @@ impl Shell {
                 pwd: std::env::current_dir().unwrap(),
                 hist_file,
                 history: vec![],
+                appended: 0
             }
         } else {
             Shell::default()
@@ -79,6 +81,15 @@ impl Shell {
 
     pub fn write_history<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
         fs::write(path, self.history.join("\n") + "\n")?;
+        Ok(())
+    }
+    
+    pub fn append_history<P: AsRef<Path>>(&mut self, path: P) -> std::io::Result<()> {
+        let f = fs::read(&path).unwrap_or_default();
+        let h = String::from_utf8_lossy(&f).to_string();
+        let hi = self.history[self.appended..].join("\n") + "\n";
+        self.appended = self.history.len();
+        fs::write(path, h + &hi)?;
         Ok(())
     }
 }

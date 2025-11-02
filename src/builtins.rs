@@ -93,6 +93,8 @@ impl Command {
                 let _ = shell.read_history(self.args[2].clone());
             } else if self.args[1] == "-w" {
                 let _ = shell.write_history(self.args[2].clone());
+            } else if self.args[1] == "-a" {
+                let _ = shell.append_history(self.args[2].clone());
             }
             return ExecResult::default();
         }
