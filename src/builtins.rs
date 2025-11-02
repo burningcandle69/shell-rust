@@ -1,9 +1,9 @@
-use std::io::Stdin;
 /// This module contains the builtin commands supported
 /// by our shell and the execution logic
 use crate::command::{Command, ExecResult};
 use crate::shell::Shell;
 use is_executable::is_executable;
+use std::io::Stdin;
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -20,9 +20,7 @@ impl Command {
 
                 if let Some(exe) = self.find_executable(&self.name, &shell.path) {
                     let mut cmd = std::process::Command::new(exe.file_name().unwrap());
-                    cmd
-                        .stderr(Stdio::piped())
-                        .stdout(Stdio::piped());
+                    cmd.stderr(Stdio::piped()).stdout(Stdio::piped());
                     if self.args.len() > 1 {
                         cmd.args(&self.args[1..]);
                     }
@@ -87,8 +85,7 @@ impl Command {
     }
 
     fn pwd(&self, pwd: &PathBuf) -> ExecResult {
-        ExecResult::default()
-            .with_stdout(format!("{}\n", pwd.to_str().unwrap()))
+        ExecResult::default().with_stdout(format!("{}\n", pwd.to_str().unwrap()))
     }
 
     fn exit(&self) -> ExecResult {
@@ -102,14 +99,12 @@ impl Command {
             Ok(code) => std::process::exit(code),
             Err(e) => ExecResult::default()
                 .with_stderr(1)
-                .with_stderr("invalid error code")
+                .with_stderr("invalid error code"),
         }
-
     }
 
     fn echo(&self) -> ExecResult {
-        ExecResult::default()
-            .with_stdout(format!("{}\n", self.args[1..].join(" ").trim()))
+        ExecResult::default().with_stdout(format!("{}\n", self.args[1..].join(" ").trim()))
     }
 
     fn find_executable(&self, cmd: &String, path: &Vec<PathBuf>) -> Option<PathBuf> {

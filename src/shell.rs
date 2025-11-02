@@ -1,5 +1,5 @@
-use std::fs;
 use crate::command::Command;
+use std::fs;
 use std::path::PathBuf;
 
 #[derive(Default)]
@@ -32,7 +32,8 @@ impl Shell {
         if let Some((stderr, append)) = cmd.stderr {
             let mut content = String::new();
             if append {
-                content += &String::from_utf8_lossy(&fs::read(&stderr).unwrap_or_default()).to_string();
+                content +=
+                    &String::from_utf8_lossy(&fs::read(&stderr).unwrap_or_default()).to_string();
             }
             content += &result.stderr;
             fs::write(&stderr, content).map_err(|_| "cannot write to file")?;
@@ -43,7 +44,8 @@ impl Shell {
         if let Some((stdout, append)) = cmd.stdout {
             let mut content = String::new();
             if append {
-                content += &String::from_utf8_lossy(&fs::read(&stdout).unwrap_or_default()).to_string();
+                content +=
+                    &String::from_utf8_lossy(&fs::read(&stdout).unwrap_or_default()).to_string();
             }
             content += &result.stdout;
             fs::write(&stdout, content).map_err(|_| "cannot write to file")?;

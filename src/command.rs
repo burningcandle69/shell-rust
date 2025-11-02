@@ -1,5 +1,5 @@
-use std::fmt::Display;
 use regex::{Captures, Regex};
+use std::fmt::Display;
 
 /// This module will contain the Command struct
 /// and the parsing logic along with it
@@ -8,14 +8,14 @@ pub struct Command {
     pub name: String,
     pub args: Vec<String>,
     pub stdout: Option<(String, bool)>,
-    pub stderr: Option<(String, bool)>
+    pub stderr: Option<(String, bool)>,
 }
 
 #[derive(Default)]
 pub struct ExecResult {
     pub status: i32,
     pub stdout: String,
-    pub stderr: String
+    pub stderr: String,
 }
 
 impl ExecResult {
@@ -23,12 +23,12 @@ impl ExecResult {
         self.status = status;
         self
     }
-    
+
     pub fn with_stdout<T: Display>(mut self, stdout: T) -> Self {
         self.stdout = stdout.to_string();
         self
     }
-    
+
     pub fn with_stderr<T: Display>(mut self, stderr: T) -> Self {
         self.stderr = stderr.to_string();
         self
@@ -73,17 +73,26 @@ impl From<String> for Command {
         if !buf.trim().is_empty() {
             args.push(buf);
         }
-        
+
         let mut upto = args.len();
         let mut stdout = None;
         let mut stderr = None;
-        
-        if let Some(idx) = args.iter().position(|x| [">", ">>", "1>", "1>>"].contains(&x.as_str())) {
+
+        if let Some(idx) = args
+            .iter()
+            .position(|x| [">", ">>", "1>", "1>>"].contains(&x.as_str()))
+        {
             upto = upto.min(idx);
-            stdout = Some((args[idx + 1].clone(), args[idx] == "1>>" || args[idx] == ">>"));
+            stdout = Some((
+                args[idx + 1].clone(),
+                args[idx] == "1>>" || args[idx] == ">>",
+            ));
         }
-        
-        if let Some(idx) = args.iter().position(|x| ["2>", "2>>"].contains(&x.as_str())) {
+
+        if let Some(idx) = args
+            .iter()
+            .position(|x| ["2>", "2>>"].contains(&x.as_str()))
+        {
             upto = upto.min(idx);
             stderr = Some((args[idx + 1].clone(), args[idx] == "2>>"));
         }
@@ -92,7 +101,7 @@ impl From<String> for Command {
             name: args[0].clone(),
             args: args[..upto].to_vec(),
             stdout,
-            stderr
+            stderr,
         }
     }
 }
