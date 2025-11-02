@@ -58,22 +58,21 @@ impl Autocomplete for ShellAutocomplete {
             return Ok(highlighted_suggestion);
         }
 
-        let fs = self.suggestions.fuzzy(input.chars());
-        if fs.is_empty() {
-            print!("\x07");
-            let _ = io::stdout().flush();
-            Ok(None)
-        } else if fs.len() == 1 {
+        let mut fs = self.suggestions.fuzzy(input.chars());
+        fs.sort();
+        
+        if fs.len() == 1 {
             Ok(Some(fs[0].clone() + " "))
         } else {
             if !self.show_suggestions {
+                print!("\x07");
                 self.show_suggestions = true;
             } else {
                 print!("\r\n{}\r\n", fs.join("  "));
                 print!("$ {}", input);
-                let _ = io::stdout().flush();
                 self.show_suggestions = false;
             }
+            let _ = io::stdout().flush();
             Ok(None)
         }
     }
